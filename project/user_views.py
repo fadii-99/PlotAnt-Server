@@ -12,7 +12,7 @@ from django.forms import model_to_dict
 from django.shortcuts import redirect
 from django.http import FileResponse
 from django.conf import settings
-from accounts import jwt
+from accounts import auth_jwt
 import datetime
 import json
 import ast 
@@ -54,7 +54,7 @@ def createProject(request):
             return Response({'error': 'Project name and file are required'}, status=400)
         
         try:
-            user = jwt.decode_jwt_token(token)
+            user = auth_jwt.decode_jwt_token(token)
         except:
             return Response({'error': 'Invalid token'}, status=401)
         
@@ -90,8 +90,8 @@ def createProject(request):
 
         data = project_processor.create_project(user['email'], project_name, file)
 
-        updateUserData.project_create += 1
-        updateUserData.add_files += 1
+        updateUserData.project_create = updateUserData.project_create + 1
+        updateUserData.add_files =updateUserData.add_files + 1
         updateUserData.save()
         
         return Response({'message': data['message']}, status=200)
@@ -104,11 +104,11 @@ def projectCount(request):
     if request.method == "GET":
         token = request.COOKIES.get('token')
         try:
-            user = jwt.decode_jwt_token(token)
+            user = auth_jwt.decode_jwt_token(token)
         except:
             return Response({'error': 'Invalid token'}, status=401)
         
-        try:
+        try: 
             count = Associate.objects.filter(user_id=user['user_id'], role='owner').count()
             latest_project = Associate.objects.filter(user_id=user['user_id'], role='owner').annotate(year_month_day=Concat(
                 F('date__year'), F('date__month'), F('date__day'), output_field=IntegerField())).order_by('-year_month_day')
@@ -135,7 +135,7 @@ def projectGraphCount(request):
     if request.method == "GET":
         token = request.COOKIES.get('token')
         try:
-            user = jwt.decode_jwt_token(token)
+            user = auth_jwt.decode_jwt_token(token)
         except:
             return Response({'error': 'Invalid token'}, status=401)
 
@@ -194,7 +194,7 @@ def projectList(request):
     if request.method == "GET":
         token = request.COOKIES.get('token')
         try:
-            user = jwt.decode_jwt_token(token)
+            user = auth_jwt.decode_jwt_token(token)
         except:
             return Response({'error': 'Invalid token'}, status=401)
         
@@ -210,7 +210,6 @@ def projectList(request):
                 })
 
 
-
         return Response({'message': 'Project List', 'projects': data})
     else:
         return Response({'error': 'Invalid request method'}, status=400)
@@ -220,7 +219,7 @@ def projectList(request):
 def yourProjects(request):
     if request.method == "GET":
         token = request.COOKIES.get('token')
-        user = jwt.decode_jwt_token(token)
+        user = auth_jwt.decode_jwt_token(token)
         projects = Associate.objects.filter(user_id=user['user_id'], role='owner').select_related(
             'project').values('project__id', 'project__name', 'project__date', 'role', 'date')
 
@@ -242,7 +241,7 @@ def sendNotification(request):
 
         token = request.COOKIES.get('token')
         try:
-            user = jwt.decode_jwt_token(token)
+            user = auth_jwt.decode_jwt_token(token)
         except:
             return Response({'error': 'Invalid token'}, status=401)
 
@@ -280,17 +279,17 @@ def sendNotification(request):
                 return Response({'message': f'The user has been already granted the {accessType} role.'})
 
         notification.save()
-        # sub,to = 'PlotAnt Notification', [notification.receiver.email]
-        # html_message = render_to_string('notification.html', {'id': notification.id, 'sender': notification.sender.username, 'reciever':notification.receiver.username, 'accessType': accessType, 'project':notification.project.name, 'date':notification.date}) 
-        # plain_message = strip_tags(html_message)  
-        # email = EmailMultiAlternatives(
-        # subject=sub,
-        # body=plain_message,  
-        # from_email=settings.EMAIL_HOST_USER,  
-        # to=to,
-        # )
-        # email.attach_alternative(html_message, 'text/html')
-        # email.send()
+        sub,to = 'PlotAnt Notification', [notification.receiver.email]
+        html_message = render_to_string('notification.html', {'id': notification.id, 'sender': notification.sender.username, 'reciever':notification.receiver.username, 'accessType': accessType, 'project':notification.project.name, 'projectId':notification.project.id}) 
+        plain_message = strip_tags(html_message)  
+        email = EmailMultiAlternatives(
+        subject=sub,
+        body=plain_message,  
+        from_email=settings.EMAIL_HOST_USER,  
+        to=to,
+        )
+        email.attach_alternative(html_message, 'text/html')
+        email.send()
 
         return Response({'message': f'The user has been granted the {accessType} role.'})
     else:
@@ -303,7 +302,7 @@ def openNotification(request):
     notificationId = request.data.get('id')
 
     try:
-        user = jwt.decode_jwt_token(token)
+        user = auth_jwt.decode_jwt_token(token)
     except:
         return Response({'error': 'Invalid token'}, status=401)
 
@@ -331,7 +330,7 @@ def getSharedList(request):
     projectId = request.data.get('projectId')
 
     try:
-        user = jwt.decode_jwt_token(token)
+        user = auth_jwt.decode_jwt_token(token)
     except:
         return Response({'error': 'Invalid token'}, status=401)
     
@@ -360,7 +359,7 @@ def deleteAccess(request):
     userId = request.data.get('userId')
 
     try:
-        user = jwt.decode_jwt_token(token)
+        user = auth_jwt.decode_jwt_token(token)
     except:
         return Response({'error': 'Invalid token'}, status=401)
     
@@ -398,7 +397,7 @@ def markAsRead(request):
 
     token = request.COOKIES.get('token')
     try:
-        user = jwt.decode_jwt_token(token)
+        user = auth_jwt.decode_jwt_token(token)
     except:
         return Response({'error': 'Invalid token'}, status=401)
 
@@ -413,7 +412,7 @@ def markAsRead(request):
 def markAllAsRead(request):
     token = request.COOKIES.get('token')
     try:
-        user = jwt.decode_jwt_token(token)
+        user = auth_jwt.decode_jwt_token(token)
     except:
         return Response({'error': 'Invalid token'}, status=401)
 
@@ -432,7 +431,7 @@ def shareAccept(request):
         notification = request.data.get('id')
 
         try:
-            user = jwt.decode_jwt_token(token)
+            user = auth_jwt.decode_jwt_token(token)
         except:
             return Response({'error': 'Invalid token'}, status=401)
 
@@ -480,7 +479,7 @@ def shareDecline(request):
     notificationId = request.data.get('id')
 
     try:
-        user = jwt.decode_jwt_token(token)
+        user = auth_jwt.decode_jwt_token(token)
     except:
         return Response({'error': 'Invalid token'}, status=401)
 
@@ -511,7 +510,7 @@ def sharedProjects(request):
         token = request.COOKIES.get('token')
         
         try:
-            user = jwt.decode_jwt_token(token)
+            user = auth_jwt.decode_jwt_token(token)
         except:
             return Response({'error': 'Invalid token'}, status=401)
 
@@ -537,12 +536,12 @@ def sharedProjects(request):
         return Response({'error': 'Invalid request method'}, status=400)
 
 
-@api_view(['GET'])
+@api_view(['POST'])
 def getNotifications(request):
     token = request.COOKIES.get('token')
 
     try:
-        user = jwt.decode_jwt_token(token)
+        user = auth_jwt.decode_jwt_token(token)
     except:
         return Response({'error': 'Invalid token'}, status=401)
 
@@ -579,7 +578,7 @@ def deleteNotification(request):
     notificationId = request.data.get('id')
 
     try:
-        user = jwt.decode_jwt_token(token)
+        user = auth_jwt.decode_jwt_token(token)
     except:
         return Response({'error': 'Invalid token'}, status=401)
 
@@ -602,7 +601,7 @@ def projectOpen(request):
         projectid = request.data.get('projectId')
 
         try:
-            user = jwt.decode_jwt_token(token)
+            user = auth_jwt.decode_jwt_token(token)
         except:
             return Response({'error': 'Invalid token'}, status=401)
 
@@ -633,7 +632,7 @@ def download_project_file(request):
         project = Project.objects.get(id=project_id)
 
         try:
-            user = jwt.decode_jwt_token(token)
+            user = auth_jwt.decode_jwt_token(token)
         except:
             return Response({'error': 'Invalid token'}, status=401)
         
@@ -666,7 +665,7 @@ def archiveProject(request):
         projectId = request.data.get('projectId')
 
         try:
-            user = jwt.decode_jwt_token(token)
+            user = auth_jwt.decode_jwt_token(token)
         except:
             return Response({'error': 'Invalid token'}, status=401)
         
@@ -686,7 +685,7 @@ def unArchive(request):
         projectId = request.data.get('projectId')
 
         try:
-            user = jwt.decode_jwt_token(token)
+            user = auth_jwt.decode_jwt_token(token)
         except:
             return Response({'error': 'Invalid token'}, status=401)
         
@@ -706,7 +705,7 @@ def archivedProjects(request):
         token = request.COOKIES.get('token')
 
         try:
-            user = jwt.decode_jwt_token(token)
+            user = auth_jwt.decode_jwt_token(token)
         except:
             return Response({'error': 'Invalid token'}, status=401)
         archive = Archived.objects.filter(user_id=user['user_id']).select_related(
@@ -727,7 +726,7 @@ def trashedProject(request):
     if request.method == "GET":
         token = request.COOKIES.get('token')
         try:
-            user = jwt.decode_jwt_token(token)
+            user = auth_jwt.decode_jwt_token(token)
         except:
             return Response({'error': 'Invalid token'}, status=401)
         trash = Trash.objects.filter(user_id=user['user_id']).values('id', 'project', 'projectcreatedate', 'date')
@@ -744,7 +743,7 @@ def projectDelete(request):
         project_id = request.data.get('projectID')
 
         try:
-            user = jwt.decode_jwt_token(token)
+            user = auth_jwt.decode_jwt_token(token)
         except:
             return Response({'error': 'Invalid token'}, status=401)
         
@@ -767,7 +766,8 @@ def projectDelete(request):
         # sharecount = 0 
         files = File.objects.filter(project_id=project_id)
         for f in files:
-            graphcount = graphcount + Graph.objects.filter(file_id=f.id).count()
+            graphcount = graphcount + GraphData.objects.filter(file_id=f.id).count()
+
         filescount = File.objects.filter(project_id=project_id).count()
 
         filenames = ', '.join([file.name for file in files])
@@ -808,7 +808,7 @@ def projectRestore(request):
         trash_id = request.data.get('trashId')
 
         try:
-            user = jwt.decode_jwt_token(token)
+            user = auth_jwt.decode_jwt_token(token)
         except:
             return Response({'error': 'Invalid token'}, status=401)
 
@@ -857,7 +857,7 @@ def projectDeletePermanently(request):
         trash_id = request.data.get('trashId')
 
         try:
-            user = jwt.decode_jwt_token(token)
+            user = auth_jwt.decode_jwt_token(token)
         except:
             return Response({'error': 'Invalid token'}, status=401)
 
@@ -888,7 +888,7 @@ def fileDelete(request):
         projectId = request.data.get('projectId')
         fileId = request.data.get('fileId')
         try:
-            user = jwt.decode_jwt_token(token)
+            user = auth_jwt.decode_jwt_token(token)
         except:
             return Response({'error': 'Invalid token'}, status=401)
         
@@ -900,11 +900,18 @@ def fileDelete(request):
             owner = Associate.objects.get(project_id=projectId, role='owner')
             updateUserData = User.objects.get(id=owner.user_id)
             updateUserData.add_files = updateUserData.add_files - 1
+
+            count = GraphData.objects.filter(file_id=fileId).count()
+
+            updateUserData.graph_limit = updateUserData.graph_limit - count
             updateUserData.save()
         else:
             updateUserData = User.objects.get(id=user['user_id'])
             updateUserData.add_files = updateUserData.add_files - 1
-            updateUserData.graph_limit = 0
+
+            count = GraphData.objects.filter(file_id=fileId).count()
+
+            updateUserData.graph_limit = updateUserData.graph_limit - count
             updateUserData.save()
 
         gd = GraphData.objects.filter(file_id=fileId)
@@ -936,7 +943,7 @@ def fileDownload(request):
         projectId = request.data.get('projectId')
         fileId = request.data.get('fileId')
         try:
-            user = jwt.decode_jwt_token(token)
+            user = auth_jwt.decode_jwt_token(token)
         except:
             return Response({'error': 'Invalid token'}, status=401)
         
@@ -965,7 +972,7 @@ def fileRename(request):
         fileName = request.data.get('fileName')
 
         try:
-            user = jwt.decode_jwt_token(token)
+            user = auth_jwt.decode_jwt_token(token)
         except:
             return Response({'error': 'Invalid token'}, status=401)
         
@@ -1004,7 +1011,7 @@ def newFile(request):
         overWrite = request.data.get('overWrite')
 
         try:
-            user = jwt.decode_jwt_token(token)
+            user = auth_jwt.decode_jwt_token(token)
         except:
             return Response({'error': 'Invalid token'}, status=401)
 
@@ -1012,7 +1019,7 @@ def newFile(request):
             return Response({'error': 'invalid format'}, status=400)
         
         associate = Associate.objects.get(user_id=user['user_id'], project_id=projectid)
-        updateUserData = ''
+        updateUserData = None
 
         if associate.role == 'read':
             return Response({'error': 'You do not have the right to perform this action.'}, status=400)
@@ -1023,7 +1030,7 @@ def newFile(request):
             updateUserData = User.objects.get(id=user['user_id'])
 
         plan = Subscription.objects.get(plan_id=updateUserData.plan)
-        file_count = File.objects.get(project_id=projectid)
+        file_count = File.objects.filter(project_id=projectid).count()
 
         if file.size / (1024 ** 2) > plan.file_size:
             return Response({'error': f'You upload file greater than {plan.file_size} mb'}, status=400)
@@ -1063,7 +1070,7 @@ def analyse(request):
         fileId = request.data.get('fileId')
 
         try:
-            user = jwt.decode_jwt_token(token)
+            user = auth_jwt.decode_jwt_token(token)
         except:
             return Response({'error': 'Invalid token'}, status=401)
         
@@ -1112,7 +1119,7 @@ def labels(request):
         fileId = request.data.get('fileId')
 
         try:
-            user = jwt.decode_jwt_token(token)
+            user = auth_jwt.decode_jwt_token(token)
         except:
             return Response({'error': 'Invalid token'}, status=401)
         
@@ -1167,7 +1174,7 @@ def labels_legends(request):
         token = request.COOKIES.get('token')
 
         try:
-            user = jwt.decode_jwt_token(token)
+            user = auth_jwt.decode_jwt_token(token)
         except:
             return Response({'error': 'Invalid token'}, status=401)
 
@@ -1213,7 +1220,7 @@ def edit_value(request):
         token = request.COOKIES.get('token')
 
         try:
-            user = jwt.decode_jwt_token(token)
+            user = auth_jwt.decode_jwt_token(token)
         except:
             return Response({'error': 'Invalid token'}, status=401)
 
@@ -1243,9 +1250,10 @@ def saveGraph(request):
     if request.method == 'POST':
         token = request.COOKIES.get('token')
         projectId = request.data.get('project_id')
+        fileId = request.data.get('file_id')
         currentGraphId = request.data.get('currentGraphId')
         try:
-            user = jwt.decode_jwt_token(token)
+            user = auth_jwt.decode_jwt_token(token)
         except:
             return Response({'error': 'Invalid token'}, status=401)
 
@@ -1263,9 +1271,36 @@ def saveGraph(request):
             logsData(associate.role, f"{user['user']} has modified {g.graphName} plot", g.id, **data)
             return Response({'message': 'Graph data saved successfully'}, status=201)
         else:
+            associate = Associate.objects.get(user_id=user['user_id'], project_id=projectId)
+            
+            if associate.role == 'write':
+                owner = Associate.objects.get(project_id=projectId, role='owner')
+                updateUserData = User.objects.get(id=owner.user_id)
+                plan = Subscription.objects.get(plan_id=updateUserData.plan)
+                file = File.objects.get(project_id=projectId)
+                count = GraphData.objects.filter(file_id=file.id).count()
+                if count != 0:
+                    if updateUserData.graph_limit > plan.graph_limit/count:
+                        return Response({'error': 'You have reached the limit of graphs'}, status=400)
+                updateUserData.graph_limit = updateUserData.graph_limit + 1
+                updateUserData.save()
+            else:
+                updateUserData = User.objects.get(id=user['user_id'])
+                plan = Subscription.objects.get(plan_id=updateUserData.plan)
+                count = GraphData.objects.filter(file_id=fileId).count()
+                if count != 0:
+                    if updateUserData.graph_limit > plan.graph_limit/count:
+                        return Response({'error': 'You have reached the limit of graphs'}, status=400)
+                updateUserData.graph_limit = updateUserData.graph_limit + 1
+                updateUserData.save()
+            
+            data = request.data
             data['user_id'] = user['user_id']
-            Graph(associate.role, f'{user["user"]} has modified {data["graphName"]} plot', **data)
-            return Response({'message': 'Graph data saved successfully'}, status=201)
+
+            if Graph(associate.role, f'{user["user"]} has plotted {data["graphName"]} plot', **data):
+                return Response({'message': 'Graph data saved successfully'}, status=200)
+            else:
+                return Response({'error': 'Failed to save graph data'}, status=400)
     else:
         return Response({"error": 'Wrong Request Method'}, status=400)
     
@@ -1275,9 +1310,10 @@ def newGraph(request):
     if request.method == 'POST':
         token = request.COOKIES.get('token')
         projectId = request.data.get('project_id')
+        fileId = request.data.get('file_id')
 
         try:
-            user = jwt.decode_jwt_token(token)
+            user = auth_jwt.decode_jwt_token(token)
         except:
             return Response({'error': 'Invalid token'}, status=401)
         
@@ -1297,9 +1333,7 @@ def newGraph(request):
         else:
             updateUserData = User.objects.get(id=user['user_id'])
             plan = Subscription.objects.get(plan_id=updateUserData.plan)
-            files = File.objects.filter(project_id=projectId)
-            file = files.first()
-            count = GraphData.objects.filter(file_id=file.id).count()
+            count = GraphData.objects.filter(file_id=fileId).count()
             if count != 0:
                 if updateUserData.graph_limit > plan.graph_limit/count:
                     return Response({'error': 'You have reached the limit of graphs'}, status=400)
@@ -1309,7 +1343,7 @@ def newGraph(request):
         data = request.data
         data['user_id'] = user['user_id']
 
-        if Graph(associate.role, f'{user["user"]} has modified {data["graphName"]} plot', **data):
+        if Graph(associate.role, f'{user["user"]} has plotted {data["graphName"]} plot', **data):
             return Response({'message': 'Graph data saved successfully'}, status=200)
         else:
             return Response({'error': 'Failed to save graph data'}, status=400)
@@ -1328,7 +1362,7 @@ def getGraph(request):
         fileId = request.data.get('fileId')
 
         try:
-            user = jwt.decode_jwt_token(token)
+            user = auth_jwt.decode_jwt_token(token)
         except:
             return Response({'error': 'Invalid token'}, status=401)
         
@@ -1358,7 +1392,7 @@ def getLogsGraph(request):
         logId = request.data.get('logId')
 
         try:
-            user = jwt.decode_jwt_token(token)
+            user = auth_jwt.decode_jwt_token(token)
         except:
             return Response({'error': 'Invalid token'}, status=401)
         
@@ -1378,7 +1412,7 @@ def deleteGraph(request):
         graphId = request.data.get('graphId')
 
         try:
-            user = jwt.decode_jwt_token(token)
+            user = auth_jwt.decode_jwt_token(token)
         except:
             return Response({'error': 'Invalid token'}, status=401)
         
@@ -1410,7 +1444,7 @@ def projectHistory(request):
         fileId = request.data.get('fileId')
 
         try:
-            user = jwt.decode_jwt_token(token)
+            user = auth_jwt.decode_jwt_token(token)
         except:
             return Response({'error': 'Invalid token'}, status=401)
         

@@ -1,9 +1,7 @@
 from pathlib import Path
 from datetime import timedelta
 import os
-from dotenv import load_dotenv
-
-load_dotenv()
+from django.conf import settings
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -11,6 +9,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-hqkaaibwli!6)ui4b#0+d70lkojvk*(#cn*tvtf@)c1+34m-(9'
 
 DEBUG = True
+
+# settings.SESSION_COOKIE_SAMESITE = 'Lax'
+# settings.CSRF_COOKIE_SAMESITE = 'Lax'
+# settings.SESSION_COOKIE_SECURE = False  # Ensure cookies are sent only over HTTPS
+# settings.CSRF_COOKIE_SECURE = False
 
 ALLOWED_HOSTS = ["*"]
 
@@ -73,9 +76,34 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'  
 
 
-# CORS_ALLOWED_ORIGINS = [
-#     "https://plotant.com"
-# ]
+# CORS_ALLOWED_ORIGINS = ["http://64.227.180.23:8800"]
+CORS_ALLOWED_ORIGINS = [
+    "http://plotant.com",
+]
+
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = True
+# Optional settings for methods and headers if needed
+CORS_ALLOW_METHODS = [
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+]
+
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+]
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',

@@ -19,6 +19,24 @@ def create(email):
 
 # 4 functions
 class ProjectProcessor:
+    def replace_empty_with_zero(self,df):
+        for column in df.columns:
+        # Check the data type of the column
+            if df[column].dtype == 'int64':
+                df[column] = df[column].apply(lambda x: 0 if pd.isnull(x) else x)
+            elif df[column].dtype == 'float64':
+                df[column] = df[column].apply(lambda x: 0.0 if pd.isnull(x) else x)
+            elif pd.api.types.is_datetime64_any_dtype(df[column]):
+                df[column] = df[column].apply(lambda x: pd.Timestamp('01-01-1970') if pd.isnull(x) else x)
+            elif df[column].dtype == 'object':
+                # try:
+                #     # Attempt to convert to numeric values first
+                #     df[column] = df[column].apply(lambda x: 0 if pd.isnull(x) else x)
+                #     df[column] = df[column].astype('int64' if df[column].apply(lambda x: isinstance(x, (int, np.integer))).all() else 'float64')
+                # except:
+                    # If conversion fails, fill NaNs with '0' for string/object types
+                df[column] = df[column].apply(lambda x: '0' if pd.isnull(x) else x)
+        return df
 
     def create_project(self, email, projectname, file):
         main_folder = os.path.join(main_storage, user_storage)
@@ -47,27 +65,27 @@ class ProjectProcessor:
         return 1
     
 
-    def checknan(self, file):
-        data = pd.read_csv(file)
-        has_nan = data.isnull().values.any()
-        locations = {'rows': [], 'cols': []}
-        corrupt_file = []
+    # def checknan(self, file):
+    #     data = pd.read_csv(file)
+    #     has_nan = data.isnull().values.any()
+    #     locations = {'rows': [], 'cols': []}
+    #     corrupt_file = []
 
-        if has_nan:
-            nan_locations = pd.DataFrame(data.isnull(), columns=data.columns).stack()
-            for idx in nan_locations[nan_locations].index:
-                row_number, col_name = idx
-                locations['rows'].append(row_number + 1)
-                col_parts = col_name.split(' ')
-                if len(col_parts) > 1:
-                    locations['cols'].append(col_parts[1])
-                else:
-                    locations['cols'].append(col_name)
-            corrupt_file.append(True)
-            message = f'some cells are empty try fill them or remove them locations are: {locations}'
-            return {'locations': message}
-        else:
-            return 1
+    #     if has_nan:
+    #         nan_locations = pd.DataFrame(data.isnull(), columns=data.columns).stack()
+    #         for idx in nan_locations[nan_locations].index:
+    #             row_number, col_name = idx
+    #             locations['rows'].append(row_number + 1)
+    #             col_parts = col_name.split(' ')
+    #             if len(col_parts) > 1:
+    #                 locations['cols'].append(col_parts[1])
+    #             else:
+    #                 locations['cols'].append(col_name)
+    #         corrupt_file.append(True)
+    #         message = f'some cells are empty try fill them or remove them locations are: {locations}'
+    #         return {'locations': message}
+    #     else:
+    #         return 1
 
 
     def save_file(self, email, projectName, file):
@@ -84,20 +102,22 @@ class ProjectProcessor:
                     destination.write(chunk)
 
         data = pd.read_csv(file_path)
-        df = data
+        df = self.replace_empty_with_zero(data)
 
-        def fill_value(dtype):
-            if pd.api.types.is_integer_dtype(dtype):
-                return 0
-            elif pd.api.types.is_float_dtype(dtype):
-                return 0.0
-            else:
-                return np.nan  
+        # df = data
+
+        # def fill_value(dtype):
+        #     if pd.api.types.is_integer_dtype(dtype):
+        #         return 0
+        #     elif pd.api.types.is_float_dtype(dtype):
+        #         return 0.0
+        #     else:
+        #         return np.nan  
             
-        for column in df.columns:
-            dtype = df[column].dtype
-            value_to_fill = fill_value(dtype)
-            df[column].fillna(value_to_fill, inplace=True)
+        # for column in df.columns:
+        #     dtype = df[column].dtype
+        #     value_to_fill = fill_value(dtype)
+        #     df[column].fillna(value_to_fill, inplace=True)
 
         new_path = file_path + '_filled'
 
@@ -253,6 +273,20 @@ class DataProcessor:
         return json.dumps(unique_values)
 
 
+    # def get_column_unique_data(self, data):
+    #     column_data_unique = {}
+    #     for col in data.columns:
+    #         unique_values = data[col].unique().tolist()
+    #         column_data_unique[col] = unique_values
+    #     return json.dumps(column_data_unique)
+
+
+    # def get_only_int_float_column_names(self, column_data):
+    #     only_int_float_column_names = []
+    #     for col, values in column_data.items():
+    #         if all(isinstance(v, (int, float)) for v in values):
+    #             only_int_float_column_names.append(col)
+    #     return json.dumps(only_int_float_column_names)
     def get_column_unique_data(self, data):
         column_data_unique = {}
         for col in data.columns:
@@ -260,11 +294,10 @@ class DataProcessor:
             column_data_unique[col] = unique_values
         return json.dumps(column_data_unique)
 
-
     def get_only_int_float_column_names(self, column_data):
         only_int_float_column_names = []
         for col, values in column_data.items():
-            if all(isinstance(v, (int, float)) for v in values):
+            if all(isinstance(v, (int, float)) for v in values if v is not None):
                 only_int_float_column_names.append(col)
         return json.dumps(only_int_float_column_names)
 
@@ -274,6 +307,25 @@ class DataProcessor:
         sum_dict = {col: data[col].sum() for col in int_float_columns}
         json_sum_of_int_and_float_columns = json.dumps(sum_dict)
         return json_sum_of_int_and_float_columns
+
+    def replace_empty_with_zero(self,df):
+        for column in df.columns:
+        # Check the data type of the column
+            if df[column].dtype == 'int64':
+                df[column] = df[column].apply(lambda x: 0 if pd.isnull(x) else x)
+            elif df[column].dtype == 'float64':
+                df[column] = df[column].apply(lambda x: 0.0 if pd.isnull(x) else x)
+            elif pd.api.types.is_datetime64_any_dtype(df[column]):
+                df[column] = df[column].apply(lambda x: pd.Timestamp('01-01-1970') if pd.isnull(x) else x)
+            elif df[column].dtype == 'object':
+                # try:
+                #     # Attempt to convert to numeric values first
+                #     df[column] = df[column].apply(lambda x: 0 if pd.isnull(x) else x)
+                #     df[column] = df[column].astype('int64' if df[column].apply(lambda x: isinstance(x, (int, np.integer))).all() else 'float64')
+                # except:
+                    # If conversion fails, fill NaNs with '0' for string/object types
+                df[column] = df[column].apply(lambda x: '0' if pd.isnull(x) else x)
+        return df
 
 
     # def open_file(self, email, project_name, file_name):
@@ -311,29 +363,29 @@ class DataProcessor:
     #         return result_data
 
 
-    def fill_empty_cells(self, csv_file_path, data):
-        df = data
+    # def fill_empty_cells(self, csv_file_path, data):
+    #     df = data
 
-        def fill_value(dtype):
-            if pd.api.types.is_integer_dtype(dtype):
-                return 0
-            elif pd.api.types.is_float_dtype(dtype):
-                return 0.0
-            else:
-                return 'null' 
+    #     def fill_value(dtype):
+    #         if pd.api.types.is_integer_dtype(dtype):
+    #             return 0
+    #         elif pd.api.types.is_float_dtype(dtype):
+    #             return 0.0
+    #         else:
+    #             return 'null' 
             
-        for column in df.columns:
-            dtype = df[column].dtype
-            value_to_fill = fill_value(dtype)
-            df[column].fillna(value_to_fill, inplace=True)
+    #     for column in df.columns:
+    #         dtype = df[column].dtype
+    #         value_to_fill = fill_value(dtype)
+    #         df[column].fillna(value_to_fill, inplace=True)
 
-        new_path = 'filled_' + csv_file_path
+    #     new_path = 'filled_' + csv_file_path
 
-        df.to_csv(new_path, index=False)
-        if os.path.exists(csv_file_path):
-            os.remove(csv_file_path)
+    #     df.to_csv(new_path, index=False)
+    #     if os.path.exists(csv_file_path):
+    #         os.remove(csv_file_path)
 
-        os.rename(new_path, csv_file_path)
+    #     os.rename(new_path, csv_file_path)
         
 
     def open_file(self, email, project_name, file_name):
@@ -342,30 +394,37 @@ class DataProcessor:
         project_folder = os.path.join(user_folder, project_name)
         file = os.path.join(project_folder, file_name)
 
+        # Read the CSV file
         data = pd.read_csv(file)
-        
+
+        # Fill NaN values with None
+        # data = self.replace_empty_with_zero(data)
+
+        # Convert data to JSON
         json_data = data.to_json(orient='records')
         parsed_json_data = json.loads(json_data)
 
-        head = data
+        # Get the head of the data
+        head = data.head()  # Use head() to get the first few rows
         json_head = head.to_json(orient='records')
         parsed_json_head = json.loads(json_head)
 
+        # Get column names and data
         column_names = data.columns.tolist()
         column_data = {}
         for col in column_names:
             column_data[col] = data[col].tolist()
 
+        # Convert column data to JSON
         column_dataJ = json.dumps(column_data)
-    
+
         result_data = {
             'flg': False,
             'json_data': parsed_json_head,
             'head': parsed_json_data,
-            'column_names': json.loads(self.get_column_names(data)),
-            'column_data': json.loads(column_dataJ),
+            'column_names': column_names,
+            'column_data': column_data,
             'column_data_unique': json.loads(self.get_column_unique_data(data)),
-            # 'sum': json.loads(self.get_sum_of_int_and_float_columns(data)),
             'type': json.loads(self.get_only_int_float_column_names(column_data)),
         }
         return result_data
@@ -536,12 +595,12 @@ class DataProcessor:
             return json.loads(json_msg)
         
 
-    def moveFile(self, project, file):
-        previous = os.path.join(project, 'previous')
-        if not os.path.exists(previous):
-            os.mkdir(previous)
-        else:
-            shutil.move(file, previous)
+    # def moveFile(self, project, file):
+    #     previous = os.path.join(project, 'Previous')
+    #     if not os.path.exists(previous):
+    #         os.mkdir(previous)
+    #     else:
+    #         shutil.move(file, previous)
 
 
   
@@ -558,7 +617,7 @@ class DataProcessor:
                     
                     data = pd.read_csv(filepath)
 
-                    self.moveFile(project_folder, filepath)
+                    # self.moveFile(project_folder, filepath)
 
                     updated_data = self.update(data, col, row_no, value)
 

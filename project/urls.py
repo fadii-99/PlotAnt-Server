@@ -41,7 +41,7 @@ urlpatterns = [
     path('sharedProjects', user_views.sharedProjects),
     path('getSharedList', user_views.getSharedList), 
     path('deleteAccess', user_views.deleteAccess), 
-    path('getNotifications/', user_views.getNotifications),
+    path('getNotifications', user_views.getNotifications),
     path('readNotification', user_views.openNotification),
     path('testNotification/<id>/', user_views.testNotification, name='testNotification'),
     path('markAsRead', user_views.markAsRead),

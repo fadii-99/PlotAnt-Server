@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>New Project Share Notification</title>
+    <title>Bank Account/Card Successfully Added</title>
     <style>
         /* CSS styles for better email rendering */
         body {
@@ -46,14 +46,17 @@
 </head>
 <body>
     <div class="container">
-        <h1>New Project Share Notification</h1>
-        <p>You have been granted {{accessType}} access to a project.</p>
-        <p>{{sender}} has shared the project "<a style="color:#15589c" href="http://64.227.180.23:3000/project/{{projectId}}"><strong>{{project}}</strong></a>" with you, granting you {{accessType}} access.</p>
-        <p>You can now collaborate on this project and make changes as needed.</p>
+        <h1>Bank Account/Card Successfully Added</h1>
+        <p>Congratulations! Your bank account/card has been successfully added to your account.</p>
+        <h2>Bank Account Details:</h2>
+        <ul>
+            <li><strong>Account Holder Name:</strong> {{holderName}}</li>
+            <li><strong>Account Number:</strong> **** **** **** {{cardNumber}}</li>
+        </ul>
         <p>If you have any questions or need further assistance, feel free to contact us at <a href="mailto:[Your Support Email Address]">contact@plotant.com</a>.</p>
     </div>
     <div class="footer">
-        <p>Thank you for using PlotAnt.</p>
+        <p>Thank you for choosing PlotAnt.</p>
     </div>
 </body>
 </html>

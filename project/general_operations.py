@@ -236,7 +236,7 @@ class EPS:
     def __init__(self, png_dir=os.getcwd()):
         self.png_dir = png_dir
         self.eps_dir = os.path.join(self.png_dir, "converted")
-        os.makedirs(self.eps_dir, exist_ok=True)
+        # os.makedirs(self.eps_dir, exist_ok=True)
 
     def remove_transparency(self, im, bg_color=(255,   255,   255)):
         if im.mode in ('RGBA', 'LA') or (im.mode == 'P' and 'transparency' in im.info):
@@ -272,7 +272,7 @@ class EPS:
         return base64_image
 
     def main(self, img):
-        print("Converting png to eps...")
+        print("Converting to eps...")
         out = self.convert(img)
         return out
 

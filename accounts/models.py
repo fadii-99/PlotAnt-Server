@@ -39,7 +39,7 @@ class Subscription(models.Model):
 class Card(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     holder_name = models.CharField(max_length=255)
-    card_number = models.CharField(max_length=16, unique=True)  
+    card_number = models.CharField(max_length=16)  
     expiration_date = models.DateField()
     cvv = models.CharField(max_length=4)
     
