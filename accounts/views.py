@@ -53,6 +53,8 @@ def serialize_card(card):
 @api_view(['POST'])
 def Authentication(request):
     token = request.COOKIES.get('token')
+    # token= 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoyLCJ1c2VyIjoiU2FpbSBBYmJhcyIsImVtYWlsIjoic2FiYmFzNDg2MjQ5QGdtYWlsLmNvbSIsImV4cCI6MTcxODI5NjIwNC4zODUwNjd9.BWgvJ-gy6VrooJmBpU1VFTXxlWedTl9VzLrxQNZjBVI'
+    print(request.COOKIES)
     if token:
         JWT_str = decode_jwt_token(token)
         user = User.objects.get(email=JWT_str['email'])
@@ -458,7 +460,11 @@ def subscriptionData(request):
     p1 = Subscription(plan_name='Basic', project_create=1, add_files=2, file_size=5, multifields='', chart_plots='', color_selection=False, custom_theme=False, graph_limit=6, logs=False, chart_download='', shares=1, pdf_download=False)
     p1.save()
 
+<<<<<<< HEAD
     p2 = Subscription(plan_name='Standard', project_create=5, add_files=15, file_size=20, multifields='', chart_plots='', color_selection=False, custom_theme=False, graph_limit=150, logs=False, chart_download='', shares=5, pdf_download=False)
     p2.save()
     p3 = Subscription(plan_name='Premium', project_create=10, add_files=1000, file_size=1000, multifields='', chart_plots='', color_selection=False, custom_theme=False, graph_limit=1000, logs=False, chart_download='', shares=10, pdf_download=False)
     p3.save()
+=======
+ 
+>>>>>>> origin/master

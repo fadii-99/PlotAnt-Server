@@ -1,0 +1,22 @@
+Watching for file changes with StatReloader
+[12/Jun/2024 17:44:25] "OPTIONS /account/login HTTP/1.1" 200 0
+[12/Jun/2024 17:44:26] "POST /account/login HTTP/1.1" 200 32
+[12/Jun/2024 17:44:26] "OPTIONS /account/index HTTP/1.1" 200 0
+[12/Jun/2024 17:44:27] "OPTIONS /analysis/projectsCount HTTP/1.1" 200 0
+[12/Jun/2024 17:44:27] "OPTIONS /analysis/projectsList HTTP/1.1" 200 0
+[12/Jun/2024 17:44:27] "OPTIONS /analysis/projectGraphCount HTTP/1.1" 200 0
+[12/Jun/2024 17:44:27] "POST /account/index HTTP/1.1" 200 38
+Unauthorized: /analysis/projectsCount
+[12/Jun/2024 17:44:27] "GET /analysis/projectsCount HTTP/1.1" 401 25
+Unauthorized: /analysis/projectsList
+[12/Jun/2024 17:44:27] "GET /analysis/projectsList HTTP/1.1" 401 25
+Unauthorized: /analysis/projectGraphCount
+[12/Jun/2024 17:44:27] "GET /analysis/projectGraphCount HTTP/1.1" 401 25
+[12/Jun/2024 17:44:31] "POST /account/login HTTP/1.1" 200 32
+Unauthorized: /analysis/projectsList
+[12/Jun/2024 17:44:31] "GET /analysis/projectsList HTTP/1.1" 401 25
+Unauthorized: /analysis/projectsCount
+[12/Jun/2024 17:44:31] "GET /analysis/projectsCount HTTP/1.1" 401 25
+[12/Jun/2024 17:44:31] "POST /account/index HTTP/1.1" 200 38
+Unauthorized: /analysis/projectGraphCount
+[12/Jun/2024 17:44:31] "GET /analysis/projectGraphCount HTTP/1.1" 401 25
