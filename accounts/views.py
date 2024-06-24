@@ -1,4 +1,4 @@
-from accounts.jwt import decode_jwt_token, generate_jwt_token
+from accounts.auth_jwt import decode_jwt_token, generate_jwt_token
 from django.views.decorators.csrf import csrf_exempt
 from accounts.secerteStripe import initiate_payment
 from accounts.publishStripe import generate_token 
@@ -9,7 +9,9 @@ from datetime import datetime, timedelta
 from project import file_operations
 from django.conf import settings
 import requests
-
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
 # github credentials
 CLIENT_ID = 'Ov23lilF0qPJ7JAM1eAb'
 CLIENT_SECRET = 'dd6a74700502647f141349fea1c44fded976f7d7'
@@ -54,7 +56,9 @@ def Authentication(request):
     if token:
         JWT_str = decode_jwt_token(token)
         user = User.objects.get(email=JWT_str['email'])
-        subscription = Subscription.objects.get(plan_id=user.plan)
+        # input(user.plan)
+        subscription = Subscription.objects.filter(plan_id=user.plan).first()
+
         serialized_subscription = serialize_subscription(subscription)
 
         if user.plan_exp_date:
@@ -90,10 +94,22 @@ def register(request):
         existing_user = User.objects.filter(email=request.data.get('email')).first()
         if existing_user is None:
 
-            user = User(username=request.data.get('name'), email=request.data.get('email'), password=request.data.get('password'), plan=1)
+            user = User(username=request.data.get('name'), email=request.data.get('email'), password=request.data.get('password'), plan=1,
+            account_create_date=datetime.now(), plan_exp_date=datetime.now().date() + timedelta(days=30))
 
             file_operations.create(user.email)
             
+            sub,to = 'PlotAnt| Registration', [user.email]
+            html_message = render_to_string('registration.html',{'email':user.email, 'username':user.username}) 
+            plain_message = strip_tags(html_message)  
+            email = EmailMultiAlternatives(
+            subject=sub,
+            body=plain_message,  
+            from_email=settings.EMAIL_HOST_USER,  
+            to=to,
+            )
+            email.attach_alternative(html_message, 'text/html')
+            email.send()
             user.save()
             return Response({'message': 'Successfully Registered'})
         else:
@@ -112,11 +128,12 @@ def googleLogin(request):
         if existing_user is None:
             user = User(google=1, username=request.data.get('name'), email=request.data.get('email'), password=settings.SECRET_KEY, plan=1)
 
+            file_operations.create(user.email)
             user.save()
             JWT = generate_jwt_token(user.username, user.email, user.id)
 
             response = Response({'message': 'Login Successfull.'})
-            response.set_cookie('token', JWT, max_age=36000) 
+            # response.set_cookie('token', JWT, max_age=36000) 
             return response
         else:
             if existing_user.google is None:
@@ -125,9 +142,9 @@ def googleLogin(request):
                 existing_user.save()
             JWT = generate_jwt_token(existing_user.username, existing_user.email, existing_user.id)
 
-            response = Response({'message': 'Login Successfull.'})
-            response.set_cookie('token', JWT, max_age=36000) 
-            return response
+            # response = Response({'message': 'Login Successfull.'})
+            # response.set_cookie('token', JWT, max_age=36000) 
+            return Response({'message': 'Login Successfull.','token':JWT})
     else:
         return Response({'error': 'Failed to authenticate with Google'}, status=400)
 
@@ -164,16 +181,17 @@ def github_callback(request):
 
     if existing_user is None:
         user = User(github=user_data['id'], username=user_data['name'], email=user_data['email'], password=settings.SECRET_KEY, plan=1)
-
-        file_operations.create(f'{user.email}_{user.id}')
+        user = User(google=1, username=request.data.get('name'), email=request.data.get('email'), password=settings.SECRET_KEY, plan=1)
+        
+        file_operations.create(user.email)
         
         user.save()
 
         JWT = generate_jwt_token(user.username, user.email, user.id)
 
-        response = Response({'message': 'Login Successfull.'})
-        response.set_cookie('token', JWT, max_age=36000) 
-        return response
+        # response = Response({'message': 'Login Successfull.'})
+        # response.set_cookie('token', JWT, max_age=36000) 
+        return Response({'message': 'Login Successfull.','token':JWT})
     else:
         if existing_user.github is None:
             existing_user.github=user_data['id']
@@ -199,9 +217,9 @@ def login(request):
         if user.password == password:
             JWT = generate_jwt_token(user.username, user.email, user.id)
 
-            response = Response({'success': 'Login Successfull.'})
-            response.set_cookie('token', JWT, max_age=36000) 
-            return response
+            # response = Response({'message': 'Login Successfull.','token':JWT})
+            # response.set_cookie('token', JWT, max_age=36000) 
+            return Response({'message': 'Login Successfull.','token':JWT})
         else:
             return Response({'error': 'Incorrect password'})
     else:
@@ -224,6 +242,7 @@ def getCard(request):
         existing_card = Card.objects.filter(user_id=user['user_id'])
 
         serialized_cards = [serialize_card(card) for card in existing_card]
+        print(serialized_cards)
         
         return Response({'cards': serialized_cards})
     else:
@@ -244,10 +263,14 @@ def storeCard(request):
         except:
             return Response({'error': 'Invalid token'}, status=401)
 
-        existing_card = Card.objects.filter(card_number=card_number).first()
+        userData = User.objects.get(email=user['email'])
+        if not userData:
+            return Response({'error': 'User not found'}, status=404)
+
+        existing_card = Card.objects.filter(id=userData.id, card_number=card_number).first()
         if existing_card:
-            return Response({'error': 'Credit card already exists'})
-        userData = User.objects.filter(email=user['email']).first()
+            return Response({'error': 'Credit card already exists for this user'}, status=400)
+
         new_card = Card.objects.create(
             user=userData,
             holder_name=holder_name,
@@ -255,11 +278,23 @@ def storeCard(request):
             expiration_date=expiration_date,
             cvv=cvv
         )
+
+        sub,to = 'PlotAnt| Card Added', [user['email']]
+        html_message = render_to_string('cardadded.html',{'holderName': holder_name, 'cardNumber': card_number}) 
+        plain_message = strip_tags(html_message)  
+        email = EmailMultiAlternatives(
+        subject=sub,
+        body=plain_message,  
+        from_email=settings.EMAIL_HOST_USER,  
+        to=to,
+        )
+        email.attach_alternative(html_message, 'text/html')
+        email.send()
         new_card.save()
 
-        return Response({'message': 'Credit card information stored successfully'})
+        return Response({'message': 'Credit card information stored successfully'}, status=201)
     else:
-        return Response({'error': 'Invalid request method'})
+        return Response({'error': 'Invalid request method'}, status=405)
 
 
 @api_view(['POST'])
@@ -275,6 +310,17 @@ def deleteCard(request):
 
         card = Card.objects.get(id=cardId)
         card.delete()
+        sub,to = 'PlotAnt| Card Removed', [user['email']]
+        html_message = render_to_string('cardremoved.html',{'holderName': card.holder_name, 'cardNumber': card.card_number[-4:]}) 
+        plain_message = strip_tags(html_message)  
+        email = EmailMultiAlternatives(
+        subject=sub,
+        body=plain_message,  
+        from_email=settings.EMAIL_HOST_USER,  
+        to=to,
+        )
+        email.attach_alternative(html_message, 'text/html')
+        email.send()
         return Response({'message': 'Card deleted successfully'})
     else:
         return Response({'error': 'Invalid request method'})
@@ -358,10 +404,22 @@ def stripe_payment(request):
 
 
     if success:
+        plan = Subscription.objects.get(id=planId)
         userData = User.objects.get(id=user['user_id'])
         userData.plan = planId
-        user.plan_exp_date = datetime.now().date() + timedelta(days=30)
+        userData.plan_exp_date = datetime.now().date() + timedelta(days=30)
         userData.save()
+        sub,to = 'PlotAnt| Subscription', [userData.email]
+        html_message = render_to_string('subscription.html',{'plan':plan.plan_name, 'duration':userData.plan_exp_date, 'price':payment}) 
+        plain_message = strip_tags(html_message)  
+        email = EmailMultiAlternatives(
+        subject=sub,
+        body=plain_message,  
+        from_email=settings.EMAIL_HOST_USER,  
+        to=to,
+        )
+        email.attach_alternative(html_message, 'text/html')
+        email.send()
         return Response({'message': 'Payment Successful.'})
     else:
         return Response({'error': 'Payment Failed.'}, status=400)
@@ -379,8 +437,28 @@ def cancel_subscription(request):
     user = User.objects.get(id=user['user_id'])
     user.plan = 1
     user.plan_exp_date = None
+    sub,to = 'PlotAnt| Cancel Subscription', [userData.email]
+    html_message = render_to_string('cancelsubscription.html') 
+    plain_message = strip_tags(html_message)  
+    email = EmailMultiAlternatives(
+    subject=sub,
+    body=plain_message,  
+    from_email=settings.EMAIL_HOST_USER,  
+    to=to,
+    )
+    email.attach_alternative(html_message, 'text/html')
+    email.send()
     user.save()
     return Response({'message': 'Subscription cancelled successfully.'})
 
 
+@api_view(['GET'])
+def subscriptionData(request):
+    
+    p1 = Subscription(plan_name='Basic', project_create=1, add_files=2, file_size=5, multifields='', chart_plots='', color_selection=False, custom_theme=False, graph_limit=6, logs=False, chart_download='', shares=1, pdf_download=False)
+    p1.save()
 
+    p2 = Subscription(plan_name='Standard', project_create=5, add_files=15, file_size=20, multifields='', chart_plots='', color_selection=False, custom_theme=False, graph_limit=150, logs=False, chart_download='', shares=5, pdf_download=False)
+    p2.save()
+    p3 = Subscription(plan_name='Premium', project_create=10, add_files=1000, file_size=1000, multifields='', chart_plots='', color_selection=False, custom_theme=False, graph_limit=1000, logs=False, chart_download='', shares=10, pdf_download=False)
+    p3.save()

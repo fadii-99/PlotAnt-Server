@@ -13,4 +13,5 @@ urlpatterns = [
     path('addCard', views.storeCard),
     path('getCards', views.getCard),
     path('deleteCard', views.deleteCard),
+    path('subscriptionData', views.subscriptionData),
 ]
